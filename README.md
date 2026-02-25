@@ -112,3 +112,12 @@ A comprehensive mobile-responsive web application designed to help pilgrims trac
 - **Icons:** Lucide React
 
 Developed with ❤️ for pilgrims.
+
+---
+
+## 🙏 Special Thanks
+
+Special thanks to the following providers for their invaluable contributions to this project:
+
+- **[EQuran.id](https://equran.id)**: For providing the free and comprehensive public APIs for Al-Quran and Doa (Supplications).
+- **The Open Source Community**: For the amazing libraries and tools that made this development possible.
