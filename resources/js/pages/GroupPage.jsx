@@ -4,6 +4,16 @@ import { useAuth } from '../context/AuthContext';
 import { Users, MapPin, CheckCircle, Activity, ChevronRight, Hash, LogIn, Plus, RefreshCw, MessageCircle, AlertTriangle, Save, Home, Building } from 'lucide-react';
 import BottomNav from '../components/BottomNav';
 
+// Helper: convert Indonesian phone to wa.me format (62xxx)
+const toWaNumber = (phone) => {
+    if (!phone) return '';
+    let p = phone.trim().replace(/[\s\-()]/g, '');
+    if (p.startsWith('+62')) return p.slice(1); // +62xxx -> 62xxx
+    if (p.startsWith('62')) return p;            // 62xxx -> 62xxx
+    if (p.startsWith('0')) return '62' + p.slice(1); // 08xxx -> 628xxx
+    return '62' + p;
+};
+
 const GroupMap = ({ members, alerts }) => {
     const mapRef = useRef(null);
     const mapInstance = useRef(null);
@@ -354,7 +364,7 @@ const GroupPage = () => {
                                         <a href={`https://www.google.com/maps?q=${alert.latitude},${alert.longitude}`} target="_blank" className="btn-primary" style={{padding:'10px', fontSize:'11px', flex:1, minWidth: '100px', textAlign:'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px'}}>
                                             <MapPin size={14} /> Buka Peta
                                         </a>
-                                        <a href={`https://wa.me/${alert.user?.phone?.replace(/\+/g, '')}?text=${encodeURIComponent("Saya butuh bantuan segera!")}`} target="_blank" className="btn-primary" style={{padding:'10px', fontSize:'11px', flex:1, minWidth: '100px', background:'#25D366', border:'none', textAlign:'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px'}}>
+                                        <a href={`https://wa.me/${toWaNumber(alert.user?.phone)}?text=${encodeURIComponent("Saya butuh bantuan segera!")}`} target="_blank" className="btn-primary" style={{padding:'10px', fontSize:'11px', flex:1, minWidth: '100px', background:'#25D366', border:'none', textAlign:'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px'}}>
                                             <MessageCircle size={14} /> Hubungi WA
                                         </a>
                                         <button 
@@ -410,7 +420,7 @@ const GroupPage = () => {
                                     <div style={{ color: '#ff4444', fontSize: '10px', fontWeight: 'bold', marginBottom: '8px', animation: 'pulse 1s infinite' }}>Hati-hati, Anda terlalu jauh!</div>
                                 )}
                                 <a 
-                                    href={`https://wa.me/${selectedGroup.owner?.phone?.replace(/\+/g, '')}?text=${encodeURIComponent("Assalamu'alaykum Ustadz, Tolong saya di ...")}`} 
+                                    href={`https://wa.me/${toWaNumber(selectedGroup.owner?.phone)}?text=${encodeURIComponent("Assalamu'alaykum Ustadz, Tolong saya di ...")}`} 
                                     target="_blank"
                                     style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', background: '#25D366', color: 'white', padding: '10px', borderRadius: '10px', textDecoration: 'none', fontWeight: 'bold', fontSize: '12px' }}
                                 >
@@ -462,7 +472,7 @@ const GroupPage = () => {
                                                 </a>
                                             )}
                                             {isLeader && member.user_id !== user.id && (
-                                                <a href={`https://wa.me/${member.user?.phone?.replace(/\+/g, '')}`} target="_blank" style={{ background: 'rgba(37, 211, 102, 0.1)', color: '#25D366', padding: '8px', borderRadius: '10px' }}>
+                                                <a href={`https://wa.me/${toWaNumber(member.user?.phone)}`} target="_blank" style={{ background: 'rgba(37, 211, 102, 0.1)', color: '#25D366', padding: '8px', borderRadius: '10px' }}>
                                                     <MessageCircle size={18} />
                                                 </a>
                                             )}
