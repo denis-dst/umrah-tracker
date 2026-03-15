@@ -1,6 +1,11 @@
 <?php
 
-// Trik Paksa /tmp Vercel
+// Force HTTPS - Vercel terminates SSL at edge and forwards as HTTP to PHP runtime
+// Without this, Laravel generates http:// asset URLs which browsers block (Mixed Content)
+$_SERVER['HTTPS'] = 'on';
+$_SERVER['SERVER_PORT'] = '443';
+
+
 if (isset($_ENV['VERCEL'])) {
     $storage = '/tmp/storage';
     // Jika Vercel baru saja bangun dari tidur (sleep state), folder mungkin hilang. Buat ulang.
