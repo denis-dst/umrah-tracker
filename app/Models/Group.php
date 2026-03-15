@@ -13,6 +13,8 @@ class Group extends Model
         'owner_id',
         'group_name',
         'invite_code',
+        'hotel_makkah',
+        'hotel_madinah',
     ];
 
     public function owner()

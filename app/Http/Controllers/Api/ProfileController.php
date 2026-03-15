@@ -40,4 +40,21 @@ class ProfileController extends Controller
             'user' => $user->fresh(),
         ]);
     }
+    public function updateLocation(Request $request)
+    {
+        $user = $request->user();
+
+        $request->validate([
+            'latitude' => 'required|numeric',
+            'longitude' => 'required|numeric',
+        ]);
+
+        $user->update([
+            'last_latitude' => $request->latitude,
+            'last_longitude' => $request->longitude,
+            'last_location_update' => now(),
+        ]);
+
+        return response()->json(['message' => 'Location updated']);
+    }
 }

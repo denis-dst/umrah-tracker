@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { MapPin, RotateCw, CheckCircle, XCircle } from 'lucide-react';
+import { MapPin, RotateCw, CheckCircle, XCircle, AlertTriangle, Loader } from 'lucide-react';
 import axios from 'axios';
 
 const SAI_PRAYERS = [
@@ -33,11 +33,42 @@ const SessionTracker = ({ type = 'tawaf' }) => {
     const [targetPos, setTargetPos] = useState('MARWAH');
     const [startPos, setStartPos] = useState(null);
     const [currentPos, setCurrentPos] = useState(null);
+    const [geoStatus, setGeoStatus] = useState('IDLE'); // IDLE, CHECKING, READY, ERROR
+    const [geoError, setGeoError] = useState(null);
+    
     const lastTriggeredAt = useRef(0);
     const lastStepTime = useRef(0);
     const timerRef = useRef(null);
 
     const threshold = 15;
+
+    // Monitor location readiness on mount
+    useEffect(() => {
+        checkLocationPermission();
+    }, []);
+
+    const checkLocationPermission = () => {
+        if (!navigator.geolocation) {
+            setGeoStatus('ERROR');
+            setGeoError('Browser tidak mendukung GPS');
+            return;
+        }
+
+        setGeoStatus('CHECKING');
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                setGeoStatus('READY');
+                setGeoError(null);
+            },
+            (err) => {
+                setGeoStatus('ERROR');
+                if (err.code === 1) setGeoError('Akses lokasi ditolak. Aktifkan GPS untuk melanjutkan.');
+                else if (err.code === 2) setGeoError('Lokasi tidak ditemukan. Pastikan GPS aktif.');
+                else setGeoError('Gagal mendapatkan lokasi.');
+            },
+            { enableHighAccuracy: true, timeout: 5000 }
+        );
+    };
 
     useEffect(() => {
         if (isActive) {
@@ -66,17 +97,20 @@ const SessionTracker = ({ type = 'tawaf' }) => {
 
     useEffect(() => {
         let watchId;
-        if (isActive && type === 'tawaf') {
+        if (isActive && (type === 'tawaf' || type === 'sai')) {
             watchId = navigator.geolocation.watchPosition(
                 (pos) => {
                     const { latitude, longitude } = pos.coords;
                     setCurrentPos({ lat: latitude, lng: longitude });
                     if (startPos) {
-                        setDistance(calculateDistance(latitude, longitude, startPos.lat, startPos.lng));
-                        checkProgress(latitude, longitude);
+                        const d = calculateDistance(latitude, longitude, startPos.lat, startPos.lng);
+                        setDistance(d);
+                        if (type === 'tawaf') checkProgress(latitude, longitude);
                     }
                 },
-                null,
+                (err) => {
+                    console.error('GPS Watch Error:', err);
+                },
                 { enableHighAccuracy: true }
             );
         }
@@ -110,20 +144,24 @@ const SessionTracker = ({ type = 'tawaf' }) => {
     };
 
     const handleStart = () => {
+        if (geoStatus !== 'READY') {
+            checkLocationPermission();
+            return;
+        }
+
         setSteps(0);
         setSeconds(0);
         setDistance(0);
-        if (type === 'tawaf') {
-            navigator.geolocation.getCurrentPosition((pos) => {
-                setStartPos({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-                setIsActive(true);
-                setCount(0);
-            });
-        } else {
+        setCount(0);
+
+        navigator.geolocation.getCurrentPosition((pos) => {
+            setStartPos({ lat: pos.coords.latitude, lng: pos.coords.longitude });
             setIsActive(true);
-            setCount(0);
-            setTargetPos('MARWAH');
-        }
+            if (type === 'sai') setTargetPos('MARWAH');
+        }, (err) => {
+            alert('Gagal memulai: Pastikan GPS aktif dan izin diberikan.');
+            checkLocationPermission();
+        });
     };
 
     const handleCheckpoint = () => {
@@ -154,9 +192,28 @@ const SessionTracker = ({ type = 'tawaf' }) => {
 
     return (
         <div className="tracker-card glass-card strava-style">
-            <div className="status-badge" style={{ background: isActive ? 'rgba(0,255,136,0.1)' : 'rgba(255,51,51,0.1)', color: isActive ? '#00ff88' : '#ff3333' }}>
-                {isActive ? `${type.toUpperCase()} RECORDING` : 'Siap'}
+            <div className="status-badge" style={{ 
+                background: isActive ? 'rgba(0,255,136,0.1)' : (geoStatus === 'ERROR' ? 'rgba(255,51,51,0.1)' : 'rgba(255,255,255,0.05)'), 
+                color: isActive ? '#00ff88' : (geoStatus === 'ERROR' ? '#ff3333' : '#aaa') 
+            }}>
+                {isActive ? `${type.toUpperCase()} RECORDING` : (geoStatus === 'CHECKING' ? 'Mengecek GPS...' : 'Siap')}
             </div>
+
+            {/* Location Status Message */}
+            {!isActive && geoStatus === 'ERROR' && (
+                <div style={{ background: 'rgba(255,51,51,0.1)', padding: '10px', borderRadius: '12px', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '10px', border: '1px solid rgba(255,51,51,0.2)' }}>
+                    <AlertTriangle size={18} color="#ff3333" />
+                    <span style={{ fontSize: '12px', color: '#ff3333' }}>{geoError}</span>
+                    <button onClick={checkLocationPermission} style={{ background: 'none', border: 'none', color: 'white', textDecoration: 'underline', fontSize: '11px', ml: 'auto', cursor: 'pointer' }}>Muat Ulang</button>
+                </div>
+            )}
+
+            {!isActive && geoStatus === 'READY' && (
+                <div style={{ background: 'rgba(0,255,136,0.05)', padding: '10px', borderRadius: '12px', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '10px', border: '1px solid rgba(0,255,136,0.1)' }}>
+                    <MapPin size={18} color="#00ff88" />
+                    <span style={{ fontSize: '12px', color: '#00ff88' }}>GPS Aktif & Akurat</span>
+                </div>
+            )}
 
             {/* Journey Visualization */}
             <div className="journey-visualizer" style={{ width: '100%', padding: '10px 0' }}>
@@ -233,7 +290,14 @@ const SessionTracker = ({ type = 'tawaf' }) => {
 
             <div className="actions" style={{ marginTop: '10px', width: '100%' }}>
                 {!isActive ? (
-                    <button className="btn-primary main-start" onClick={handleStart}>MULAI {type.toUpperCase()}</button>
+                    <button 
+                        className="btn-primary main-start" 
+                        onClick={handleStart} 
+                        disabled={geoStatus === 'CHECKING'}
+                        style={{ opacity: geoStatus === 'ERROR' ? 0.7 : 1 }}
+                    >
+                        {geoStatus === 'CHECKING' ? <Loader className="animate-spin" size={24} /> : `MULAI ${type.toUpperCase()}`}
+                    </button>
                 ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                         {type === 'sai' && count < 7 && (
@@ -282,10 +346,12 @@ const SessionTracker = ({ type = 'tawaf' }) => {
                 .stat-item { display: flex; flex-direction: column; align-items: center; }
                 .stat-item .val { font-size: 20px; font-weight: 800; color: white; }
                 .stat-item .lbl { font-size: 10px; opacity: 0.5; text-transform: uppercase; margin-top: 4px; }
-                .main-start { height: 60px; font-size: 18px; font-weight: 800; }
+                .main-start { height: 60px; font-size: 18px; font-weight: 800; display: flex; align-items: center; justify-content: center; }
                 .prayer-guide-scroll::-webkit-scrollbar { width: 4px; }
                 .prayer-guide-scroll::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 10px; }
                 .arabic { font-family: 'Traditional Arabic', serif; }
+                .animate-spin { animation: spin 1s linear infinite; }
+                @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
             `}</style>
         </div>
     );

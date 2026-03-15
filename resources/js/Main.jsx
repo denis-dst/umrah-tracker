@@ -1,5 +1,6 @@
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate, Link } from 'react-router-dom';
+import LocationTracker from './components/LocationTracker';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Dashboard from './pages/Dashboard';
 import ChecklistPage from './pages/ChecklistPage';
@@ -11,9 +12,11 @@ import ReminderPage from './pages/ReminderPage';
 import AdminDashboard from './pages/AdminDashboard';
 import SessionTracker from './components/SessionTracker';
 import BottomNav from './components/BottomNav';
+import RegisterPage from './pages/RegisterPage';
 import PrayerLogPage from './pages/PrayerLogPage';
 import DuaPage from './pages/DuaPage';
 import QuranPage from './pages/QuranPage';
+import { Eye, EyeOff } from 'lucide-react';
 
 const ProtectedRoute = ({ children }) => {
     const { user, loading } = useAuth();
@@ -60,13 +63,16 @@ const AuthCallback = () => {
 
 const Login = () => {
     const { login } = useAuth();
+    const navigate = useNavigate();
     const [email, setEmail] = React.useState('test@example.com');
     const [password, setPassword] = React.useState('password');
+    const [showPassword, setShowPassword] = React.useState(false);
+    const [rememberMe, setRememberMe] = React.useState(false);
 
     const handleLogin = async (e) => {
         e.preventDefault();
         try {
-            await login(email, password);
+            await login(email, password, rememberMe);
             window.location.href = '/';
         } catch (err) {
             alert('Login failed. Check backend/database.');
@@ -96,15 +102,40 @@ const Login = () => {
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                         <label style={{ fontSize: '12px', opacity: 0.6, marginLeft: '5px' }}>Password</label>
-                        <input
-                            type="password"
-                            placeholder="Password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            style={{ padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: 'white', outline: 'none' }}
-                        />
+                        <div style={{ position: 'relative' }}>
+                            <input
+                                type={showPassword ? "text" : "password"}
+                                placeholder="Password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                style={{ width: '100%', padding: '14px', paddingRight: '45px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: 'white', outline: 'none' }}
+                            />
+                            <button 
+                                type="button" 
+                                onClick={() => setShowPassword(!showPassword)}
+                                style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                            >
+                                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                            </button>
+                        </div>
                     </div>
-                    <button type="submit" className="btn-primary" style={{ padding: '14px', borderRadius: '12px', marginTop: '10px', fontSize: '15px', fontWeight: 'bold' }}>Login</button>
+                    
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '5px' }}>
+                        <input 
+                            type="checkbox" 
+                            id="rememberMe"
+                            checked={rememberMe}
+                            onChange={(e) => setRememberMe(e.target.checked)}
+                            style={{ width: '16px', height: '16px', accentColor: 'var(--accent-blue)' }}
+                        />
+                        <label htmlFor="rememberMe" style={{ fontSize: '13px', opacity: 0.8, cursor: 'pointer' }}>Ingat Saya</label>
+                    </div>
+
+                    <button type="submit" className="btn-primary" style={{ padding: '14px', borderRadius: '12px', marginTop: '5px', fontSize: '15px', fontWeight: 'bold' }}>Login</button>
+                    
+                    <p style={{ textAlign: 'center', fontSize: '13px', marginTop: '10px' }}>
+                        Belum punya akun? <Link to="/register" style={{ color: 'var(--accent-blue)', fontWeight: 'bold', textDecoration: 'none' }}>Daftar</Link>
+                    </p>
                 </form>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px', margin: '25px 0' }}>
@@ -138,14 +169,17 @@ const Login = () => {
     );
 };
 
+
 const Main = () => {
     console.log('Rendering Main component');
     return (
         <AuthProvider>
+            <LocationTracker />
             <div className="app-container">
                 <Routes>
                     <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                     <Route path="/login" element={<Login />} />
+                    <Route path="/register" element={<RegisterPage />} />
                     <Route path="/auth/callback" element={<AuthCallback />} />
                     <Route path="/checklist" element={<ProtectedRoute><ChecklistPage /></ProtectedRoute>} />
                     <Route path="/plan" element={<ProtectedRoute><PlanningPage /></ProtectedRoute>} />

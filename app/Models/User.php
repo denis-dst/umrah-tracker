@@ -30,6 +30,10 @@ class User extends Authenticatable
         'role',
         'google_id',
         'avatar',
+        'last_quran_history',
+        'last_latitude',
+        'last_longitude',
+        'last_location_update',
     ];
 
     /**
@@ -52,6 +56,8 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'last_quran_history' => 'array',
+            'last_location_update' => 'datetime',
         ];
     }
     public function checklists()

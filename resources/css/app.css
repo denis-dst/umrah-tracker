@@ -121,3 +121,73 @@ p {
     height: 24px;
     margin-bottom: 4px;
 }
+
+/* Form Styles */
+.row-grid {
+    display: grid;
+    grid-template-columns: 1fr; /* Default stack vertikal untuk mobile */
+    gap: 15px;
+}
+
+@media (min-width: 481px) {
+    .row-grid {
+        grid-template-columns: 1fr 1fr; /* Hanya 2 kolom di layar lebar/tablet */
+    }
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    font-size: 11px;
+    opacity: 0.7;
+    margin-left: 5px;
+    font-weight: 500;
+}
+
+.form-group input {
+    padding: 14px;
+    border-radius: 14px;
+    border: 1px solid var(--glass-border);
+    background: rgba(255, 255, 255, 0.03);
+    color: white;
+    outline: none;
+    transition: all 0.3s;
+    font-size: 14px;
+}
+
+.form-group input:focus {
+    border-color: var(--accent-blue);
+    background: rgba(255, 255, 255, 0.07);
+    box-shadow: 0 0 0 2px rgba(0, 210, 255, 0.1);
+}
+
+.form-group input::placeholder {
+    color: rgba(255, 255, 255, 0.2);
+}
+
+.input-with-icon {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-with-icon input {
+    width: 100%;
+}
+
+.input-icon-btn {
+    position: absolute;
+    right: 14px;
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.4);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}

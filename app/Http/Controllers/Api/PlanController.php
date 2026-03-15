@@ -29,7 +29,7 @@ class PlanController extends Controller
 
     public function update(Request $request, Plan $plan)
     {
-        if ($plan->user_id !== auth()->id()) {
+        if ($plan->user_id !== $request->user()->id) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -38,9 +38,9 @@ class PlanController extends Controller
         return response()->json($plan);
     }
 
-    public function destroy(Plan $plan)
+    public function destroy(Request $request, Plan $plan)
     {
-        if ($plan->user_id !== auth()->id()) {
+        if ($plan->user_id !== $request->user()->id) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
