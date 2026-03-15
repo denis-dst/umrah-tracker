@@ -128,7 +128,7 @@ const Dashboard = () => {
         <div className="dashboard-page" style={{ paddingBottom: '100px', padding: '20px' }}>
             <header className="glass-card" style={{ background: 'linear-gradient(135deg, rgba(0, 210, 255, 0.1), rgba(15, 23, 42, 0.8))' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                    <div style={{ width: '50px', height: '50px', borderRadius: '25px', background: 'var(--accent-blue)', display: 'flex', alignItems: 'center', justifyCenter: 'center', fontSize: '20px', fontWeight: 'bold', color: '#1a1a2e', display: 'flex', alignItems:'center', justifyContent: 'center' }}>
+                    <div style={{ width: '50px', height: '50px', borderRadius: '25px', background: 'var(--accent-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 'bold', color: '#1a1a2e' }}>
                         {user?.full_name?.charAt(0) || 'J'}
                     </div>
                     <div>

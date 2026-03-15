@@ -1,0 +1,53 @@
+﻿
+  Dropping all tables  125.50ms DONE
+
+   INFO  Preparing database.  
+
+  Creating migration table  18.80ms DONE
+
+   INFO  Running migrations.  
+
+  0001_01_01_000000_create_users_table  180.69ms DONE
+  0001_01_01_000001_create_cache_table  115.65ms DONE
+  0001_01_01_000002_create_jobs_table  85.34ms DONE
+  2026_02_25_020548_create_personal_access_tokens_table  86.66ms DONE
+  2026_02_25_021024_create_checklists_table  70.16ms DONE
+  2026_02_25_021024_create_plans_table  71.96ms DONE
+  2026_02_25_021024_create_worship_logs_table  60.00ms DONE
+  2026_02_25_021025_create_groups_table  71.51ms DONE
+  2026_02_25_021025_create_prayers_table  15.65ms DONE
+  2026_02_25_021026_create_group_members_table  104.63ms DONE
+  2026_02_25_022210_create_reminders_table  60.97ms DONE
+  2026_02_25_022459_create_itineraries_table  62.13ms DONE
+  2026_02_25_022706_create_worship_sessions_table  62.62ms DONE
+  2026_02_25_072229_add_google_id_to_users_table  90.96ms DONE
+  2026_03_13_142738_add_location_to_users_table  84.19ms DONE
+  2026_03_13_151206_add_quran_history_to_users_table  35.55ms DONE
+  2026_03_13_152226_add_hotels_to_groups_table  29.92ms DONE
+  2026_03_13_152233_create_emergency_alerts_table  106.63ms DONE
+
+
+   INFO  Seeding database.  
+
+
+   Illuminate\Database\QueryException 
+
+  SQLSTATE[42S22]: Column not found: 1054 Unknown column 'name' in 'field list' (Connection: mysql, Host: 127.0.0.1, Port: 3306, Database: umrah-tracker, SQL: insert into `users` (`name`, `email`, `email_verified_at`, `password`, `remember_token`, `updated_at`, `created_at`) values (Test User, test@example.com, 2026-03-15 16:36:55, $2y$12$yRMRsiEiJATjUwts13H53upqJDJxbq19wpROIKTjFgrtyWqGq.8yK, oyhnifpOBE, 2026-03-15 16:36:55, 2026-03-15 16:36:55))
+
+  at vendor\laravel\framework\src\Illuminate\Database\Connection.php:838
+    834Γûò             $exceptionType = $this->isUniqueConstraintError($e)
+    835Γûò                 ? UniqueConstraintViolationException::class
+    836Γûò                 : QueryException::class;
+    837Γûò 
+  Γ₧£ 838Γûò             throw new $exceptionType(
+    839Γûò                 $this->getNameWithReadWriteType(),
+    840Γûò                 $query,
+    841Γûò                 $this->prepareBindings($bindings),
+    842Γûò                 $e,
+
+  1   vendor\laravel\framework\src\Illuminate\Database\MySqlConnection.php:47
+      PDOException::("SQLSTATE[42S22]: Column not found: 1054 Unknown column 'name' in 'field list'")
+
+  2   vendor\laravel\framework\src\Illuminate\Database\MySqlConnection.php:47
+      PDO::prepare("insert into `users` (`name`, `email`, `email_verified_at`, `password`, `remember_token`, `updated_at`, `created_at`) values (?, ?, ?, ?, ?, ?, ?)")
+
