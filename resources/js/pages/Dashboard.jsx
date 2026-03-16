@@ -85,17 +85,34 @@ const Dashboard = () => {
     }, []);
 
     const progressStats = useMemo(() => {
-        if (!todayLogs.length) return { percentage: 0, done: 0, target: 6 };
-        const activities = todayLogs.map(l => l.activity_type.toUpperCase());
-        let done = 0;
-        if (activities.some(a => a.includes('FAJR') || a.includes('SUBUH'))) done++;
-        if (activities.some(a => a.includes('DHUHR') || a.includes('DZUHUR'))) done++;
-        if (activities.some(a => a.includes('ASR') || a.includes('ASHAR'))) done++;
-        if (activities.some(a => a.includes('MAGHRIB'))) done++;
-        if (activities.some(a => a.includes('ISHA') || a.includes('ISYA'))) done++;
-        if (activities.some(a => a.includes('QURAN'))) done++;
+        // We define what constitutes a "full day" of worship
+        // Typical: 5 prayers + 1 other worship (Quran/Dzikir) = 6
         const target = 6;
-        return { percentage: Math.min(Math.round((done / target) * 100), 100), done, target };
+        
+        if (!todayLogs.length) return { percentage: 0, done: 0, target };
+        
+        const activities = todayLogs.map(l => l.activity_type.toUpperCase());
+        
+        // Use a Set to count unique categories of worship performed today
+        const uniqueWorships = new Set();
+        
+        if (activities.some(a => a.includes('FAJR') || a.includes('SUBUH'))) uniqueWorships.add('subuh');
+        if (activities.some(a => a.includes('DHUHR') || a.includes('DZUHUR'))) uniqueWorships.add('dzuhur');
+        if (activities.some(a => a.includes('ASR') || a.includes('ASHAR'))) uniqueWorships.add('ashar');
+        if (activities.some(a => a.includes('MAGHRIB'))) uniqueWorships.add('maghrib');
+        if (activities.some(a => a.includes('ISHA') || a.includes('ISYA'))) uniqueWorships.add('isya');
+        
+        // Count any other activity (Quran, Tawaf, etc.) as the 6th point
+        if (activities.some(a => !a.includes('SHALAT') || a.includes('QURAN') || a.includes('TAWAF') || a.includes('SAI'))) {
+            uniqueWorships.add('other');
+        }
+        
+        const done = uniqueWorships.size;
+        return { 
+            percentage: Math.min(Math.round((done / target) * 100), 100), 
+            done, 
+            target 
+        };
     }, [todayLogs]);
 
     const times = prayerTimes[activeCity];
