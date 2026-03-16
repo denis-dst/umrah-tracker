@@ -23,28 +23,81 @@ const PRAYER_TYPES = {
 const PrayerLogPage = () => {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
-    const [status, setStatus] = useState({}); // { id: 'loading' | 'done' }
+    const [status, setStatus] = useState({}); // { id: { state: 'loading' | 'done', logId: null } }
 
-    const logPrayer = async (prayer) => {
-        if (status[prayer.id] === 'loading' || status[prayer.id] === 'done') return;
+    const fetchData = React.useCallback(async () => {
+        try {
+            const res = await axios.get('/api/worship-logs');
+            const allLogs = res.data?.data || (Array.isArray(res.data) ? res.data : []);
+            const today = new Date().toISOString().split('T')[0];
+            const todayLogs = allLogs.filter(log => log.log_datetime.startsWith(today));
 
-        setLoading(true);
-        setStatus(prev => ({ ...prev, [prayer.id]: 'loading' }));
+            const newStatus = {};
+            // Match logs to prayer IDs
+            [...PRAYER_TYPES.fardhu, ...PRAYER_TYPES.sunnah].forEach(p => {
+                const type = `SHALAT_${p.name.toUpperCase()}`;
+                const match = todayLogs.find(l => l.activity_type === type);
+                if (match) {
+                    newStatus[p.id] = { state: 'done', logId: match.id };
+                }
+            });
+            setStatus(newStatus);
+        } catch (err) {
+            console.error('Failed to fetch today logs', err);
+        }
+    }, []);
+
+    React.useEffect(() => {
+        fetchData();
+    }, [fetchData]);
+
+    const handlePrayerClick = async (prayer) => {
+        const current = status[prayer.id];
+        if (current?.state === 'loading') return;
+
+        // If already logged, DELETE it (toggle off)
+        if (current?.state === 'done' && current?.logId) {
+            if (!confirm(`Batalkan pencatatan shalat ${prayer.name}?`)) return;
+            
+            setStatus(prev => ({ ...prev, [prayer.id]: { state: 'loading' } }));
+            
+            try {
+                await axios.delete(`/api/worship-logs/${current.logId}`);
+                setStatus(prev => {
+                    const next = { ...prev };
+                    delete next[prayer.id];
+                    return next;
+                });
+            } catch (err) {
+                console.error(err);
+                setStatus(prev => ({ ...prev, [prayer.id]: { state: 'done', logId: current.logId } }));
+                alert('Gagal membatalkan catatan.');
+            }
+            return;
+        }
+
+        // Otherwise, CREATE it (toggle on)
+        setStatus(prev => ({ ...prev, [prayer.id]: { state: 'loading' } }));
 
         try {
-            await axios.post('/api/worship-logs', {
+            const res = await axios.post('/api/worship-logs', {
                 activity_type: `SHALAT_${prayer.name.toUpperCase()}`,
                 value: prayer.rakaat,
                 notes: `Manual log: ${prayer.name}`
             });
-            setStatus(prev => ({ ...prev, [prayer.id]: 'done' }));
+            setStatus(prev => ({ 
+                ...prev, 
+                [prayer.id]: { state: 'done', logId: res.data.id } 
+            }));
             if (navigator.vibrate) navigator.vibrate(100);
         } catch (err) {
             console.error(err);
-            setStatus(prev => ({ ...prev, [prayer.id]: null }));
-            alert('Gagal mencatat shalat. Silakan coba lagi.');
-        } finally {
-            setLoading(false);
+            setStatus(prev => {
+                const next = { ...prev };
+                delete next[prayer.id];
+                return next;
+            });
+            alert('Gagal mencatat shalat.');
         }
     };
 
@@ -63,9 +116,9 @@ const PrayerLogPage = () => {
                     {PRAYER_TYPES.fardhu.map(p => (
                         <button
                             key={p.id}
-                            className={`glass-card prayer-card ${status[p.id] === 'done' ? 'completed' : ''}`}
-                            onClick={() => logPrayer(p)}
-                            disabled={status[p.id] === 'done'}
+                            className={`glass-card prayer-card ${status[p.id]?.state === 'done' ? 'completed' : ''}`}
+                            onClick={() => handlePrayerClick(p)}
+                            disabled={status[p.id]?.state === 'loading'}
                             style={{
                                 display: 'flex',
                                 flexDirection: 'column',
@@ -73,16 +126,16 @@ const PrayerLogPage = () => {
                                 gap: '10px',
                                 padding: '20px',
                                 position: 'relative',
-                                background: status[p.id] === 'done' ? 'rgba(0, 255, 136, 0.1)' : 'var(--glass-bg)',
-                                border: status[p.id] === 'done' ? '1px solid #00ff88' : '1px solid var(--glass-border)',
+                                background: status[p.id]?.state === 'done' ? 'rgba(0, 255, 136, 0.1)' : 'var(--glass-bg)',
+                                border: status[p.id]?.state === 'done' ? '1px solid #00ff88' : '1px solid var(--glass-border)',
                                 color: 'white'
                             }}
                         >
                             <p.icon size={24} color={p.color} />
                             <span style={{ fontWeight: '600' }}>{p.name}</span>
                             <span style={{ fontSize: '10px', opacity: 0.6 }}>{p.rakaat} Rakaat</span>
-                            {status[p.id] === 'done' && <CheckCircle size={16} color="#00ff88" style={{ position: 'absolute', top: '10px', right: '10px' }} />}
-                            {status[p.id] === 'loading' && <span className="loader-mini"></span>}
+                            {status[p.id]?.state === 'done' && <CheckCircle size={16} color="#00ff88" style={{ position: 'absolute', top: '10px', right: '10px' }} />}
+                            {status[p.id]?.state === 'loading' && <span className="loader-mini"></span>}
                         </button>
                     ))}
                 </div>
@@ -94,9 +147,9 @@ const PrayerLogPage = () => {
                     {PRAYER_TYPES.sunnah.map(p => (
                         <button
                             key={p.id}
-                            className={`glass-card prayer-card ${status[p.id] === 'done' ? 'completed' : ''}`}
-                            onClick={() => logPrayer(p)}
-                            disabled={status[p.id] === 'done'}
+                            className={`glass-card prayer-card ${status[p.id]?.state === 'done' ? 'completed' : ''}`}
+                            onClick={() => handlePrayerClick(p)}
+                            disabled={status[p.id]?.state === 'loading'}
                             style={{
                                 display: 'flex',
                                 flexDirection: 'column',
@@ -104,13 +157,16 @@ const PrayerLogPage = () => {
                                 gap: '10px',
                                 padding: '20px',
                                 position: 'relative',
+                                background: status[p.id]?.state === 'done' ? 'rgba(249, 212, 35, 0.1)' : 'var(--glass-bg)',
+                                border: status[p.id]?.state === 'done' ? '1px solid var(--accent-gold)' : '1px solid var(--glass-border)',
                                 color: 'white'
                             }}
                         >
                             <Star size={24} color={p.color} />
                             <span style={{ fontWeight: '600' }}>{p.name}</span>
                             <span style={{ fontSize: '10px', opacity: 0.6 }}>{p.rakaat} Rakaat</span>
-                            {status[p.id] === 'done' && <CheckCircle size={16} color="#00ff88" style={{ position: 'absolute', top: '10px', right: '10px' }} />}
+                            {status[p.id]?.state === 'done' && <CheckCircle size={16} color="var(--accent-gold)" style={{ position: 'absolute', top: '10px', right: '10px' }} />}
+                            {status[p.id]?.state === 'loading' && <span className="loader-mini"></span>}
                         </button>
                     ))}
                 </div>
@@ -121,7 +177,6 @@ const PrayerLogPage = () => {
             <style>{`
                 .prayer-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid var(--glass-border); border-radius: 16px; cursor: pointer; }
                 .prayer-card:active { transform: scale(0.95); }
-                .prayer-card.completed { cursor: default; }
                 .loader-mini { width: 15px; height: 15px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; }
                 @keyframes spin { to { transform: rotate(360deg); } }
             `}</style>
