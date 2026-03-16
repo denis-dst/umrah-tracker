@@ -32,6 +32,8 @@ body {
     position: relative;
     padding-bottom: 80px;
     /* Space for bottom nav */
+    display: flex;
+    flex-direction: column;
 }
 
 /* Glassmorphism utility */

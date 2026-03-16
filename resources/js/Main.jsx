@@ -16,7 +16,7 @@ import RegisterPage from './pages/RegisterPage';
 import PrayerLogPage from './pages/PrayerLogPage';
 import DuaPage from './pages/DuaPage';
 import QuranPage from './pages/QuranPage';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Heart } from 'lucide-react';
 
 const ProtectedRoute = ({ children }) => {
     const { user, loading } = useAuth();
@@ -194,6 +194,19 @@ const Main = () => {
                     <Route path="/doas" element={<ProtectedRoute><DuaPage /></ProtectedRoute>} />
                     <Route path="/quran" element={<ProtectedRoute><QuranPage /></ProtectedRoute>} />
                 </Routes>
+                <footer style={{ 
+                    textAlign: 'center', 
+                    padding: '20px 0', 
+                    opacity: 0.4, 
+                    fontSize: '11px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '4px',
+                    marginTop: 'auto'
+                }}>
+                    Deploy with <Heart size={12} fill="#ff4d4d" color="#ff4d4d" /> by KDS Studio
+                </footer>
             </div>
         </AuthProvider>
     );
