@@ -18,6 +18,7 @@ const GroupMap = ({ members, alerts }) => {
     const mapRef = useRef(null);
     const mapInstance = useRef(null);
     const markersLayer = useRef(null);
+    const linesLayer = useRef(null);
 
     useEffect(() => {
         if (!mapInstance.current && mapRef.current) {
@@ -26,47 +27,133 @@ const GroupMap = ({ members, alerts }) => {
                 attribution: '&copy; OpenStreetMap'
             }).addTo(mapInstance.current);
             markersLayer.current = L.layerGroup().addTo(mapInstance.current);
+            linesLayer.current = L.layerGroup().addTo(mapInstance.current);
         }
 
-        if (markersLayer.current && members.length > 0) {
+        if (markersLayer.current && linesLayer.current && members.length > 0) {
             markersLayer.current.clearLayers();
+            linesLayer.current.clearLayers();
+
             const validMembers = members.filter(m => m.user?.last_latitude && m.user?.last_longitude);
+            const leader = validMembers.find(m => m.member_role === 'leader');
             
             validMembers.forEach(m => {
                 const lat = parseFloat(m.user.last_latitude);
                 const lng = parseFloat(m.user.last_longitude);
                 const hasAlert = alerts?.some(a => a.user_id === m.user_id);
+                const isLeader = m.member_role === 'leader';
+                const avatar = m.user.avatar;
 
+                // Create Marker Icon
                 const markerIcon = L.divIcon({
                     className: 'custom-marker',
-                    html: `<div style="background: ${hasAlert ? '#ff4444' : (m.member_role === 'leader' ? '#f9d423' : '#00d2ff')}; width: 32px; height: 32px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; font-weight: bold; color: ${hasAlert ? 'white' : '#1a1a2e'}; font-size: 12px; box-shadow: 0 0 15px ${hasAlert ? 'rgba(255,0,0,0.6)' : 'rgba(0,0,0,0.5)'}; animation: ${hasAlert ? 'pulse 1s infinite' : 'none'};">${m.user.full_name?.charAt(0) || 'U'}</div>`,
-                    iconSize: [32, 32],
-                    iconAnchor: [16, 16]
+                    html: `
+                        <div style="position: relative;">
+                            <div style="background: ${hasAlert ? '#ff4444' : (isLeader ? '#f9d423' : '#00d2ff')}; 
+                                        width: 40px; height: 40px; border-radius: 50%; border: 3px solid white; 
+                                        display: flex; align-items: center; justify-content: center; 
+                                        font-weight: bold; color: ${isLeader ? '#1a1a2e' : (hasAlert ? 'white' : '#1a1a2e')}; 
+                                        font-size: 14px; box-shadow: 0 0 15px ${hasAlert ? 'rgba(255,0,0,0.8)' : 'rgba(0,0,0,0.4)'}; 
+                                        animation: ${hasAlert ? 'pulse 0.8s infinite' : 'none'};
+                                        overflow: hidden;
+                                        z-index: 2;">
+                                ${avatar ? 
+                                    `<img src="${avatar}" style="width: 100%; height: 100%; object-fit: cover;" />` : 
+                                    (m.user.full_name?.charAt(0) || 'U')
+                                }
+                            </div>
+                            <div style="position: absolute; bottom: -22px; left: 50%; transform: translateX(-50%); 
+                                        background: rgba(15, 23, 42, 0.9); color: white; padding: 2px 8px; border-radius: 10px; 
+                                        font-size: 9px; white-space: nowrap; border: 1px solid rgba(255,255,255,0.2);
+                                        box-shadow: 0 2px 4px rgba(0,0,0,0.3);">
+                                ${m.user.full_name?.split(' ')[0]}
+                            </div>
+                        </div>`,
+                    iconSize: [40, 50],
+                    iconAnchor: [20, 20]
                 });
 
                 L.marker([lat, lng], { icon: markerIcon })
                     .bindPopup(`
-                        <div style="color: #1a1a2e">
-                            <strong>${m.user.full_name}</strong><br/>
-                            ${hasAlert ? '<span style="color:red;font-weight:bold">!!! EMERGENCY SOS !!!</span><br/>' : ''}
-                            ${m.member_role === 'leader' ? 'Ketua Grup' : 'Jamaah'}<br/>
-                            Update: ${m.user.last_location_update ? new Date(m.user.last_location_update).toLocaleTimeString() : 'N/A'}
+                        <div style="color: #1a1a2e; font-family: sans-serif; min-width: 180px; padding: 5px;">
+                            <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px">
+                                <div style="width:30px; height:30px; border-radius:50%; background:${isLeader ? '#f9d423' : '#00d2ff'}; display:flex; align-items:center; justify-content:center; font-weight:bold; overflow:hidden">
+                                    ${avatar ? `<img src="${avatar}" style="width:100%; height:100%; object-fit:cover" />` : m.user.full_name?.charAt(0)}
+                                </div>
+                                <div>
+                                    <div style="font-weight:bold; font-size:14px">${m.user.full_name}</div>
+                                    <div style="font-size:10px; color:#666">${isLeader ? 'Ketua Grup' : 'Jamaah'}</div>
+                                </div>
+                            </div>
+                            ${hasAlert ? '<div style="color:white; background:#ff4444; padding:6px; margin-bottom:10px; border-radius:12px; text-align:center; font-weight:bold; font-size:11px; animation: pulse 1s infinite">🚨 EMERGENCY SOS 🚨</div>' : ''}
+                            <div style="font-size:11px; color:#444; display:flex; align-items:center; gap:5px">
+                                <span style="opacity:0.6">Update:</span> ${m.user.last_location_update ? new Date(m.user.last_location_update).toLocaleTimeString() : 'N/A'}
+                            </div>
+                            <div style="margin-top:10px; display:flex; gap:5px">
+                                <a href="https://wa.me/${toWaNumber(m.user.phone)}" target="_blank" style="flex:1; background:#25D366; color:white; text-decoration:none; text-align:center; padding:5px; border-radius:5px; font-size:11px; font-weight:bold">WhatsApp</a>
+                                <a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" style="flex:1; background:#4285F4; color:white; text-decoration:none; text-align:center; padding:5px; border-radius:5px; font-size:11px; font-weight:bold">G-Maps</a>
+                            </div>
                         </div>
                     `)
                     .addTo(markersLayer.current);
+
+                // Create Line to Leader
+                if (!isLeader && leader) {
+                    const leaderLat = parseFloat(leader.user.last_latitude);
+                    const leaderLng = parseFloat(leader.user.last_longitude);
+                    
+                    L.polyline([[lat, lng], [leaderLat, leaderLng]], {
+                        color: hasAlert ? '#ff4444' : '#00d2ff',
+                        weight: 3,
+                        opacity: 0.5,
+                        dashArray: '10, 10',
+                        className: 'connection-line'
+                    }).addTo(linesLayer.current);
+                }
             });
 
             if (validMembers.length > 0) {
                 const bounds = validMembers.map(m => [parseFloat(m.user.last_latitude), parseFloat(m.user.last_longitude)]);
-                mapInstance.current.fitBounds(bounds, { padding: [50, 50] });
+                mapInstance.current.fitBounds(bounds, { padding: [70, 70] });
             }
         }
     }, [members, alerts]);
 
     return (
-        <div ref={mapRef} style={{ width: '100%', height: '350px', borderRadius: '18px', marginBottom: '20px', border: '2px solid rgba(255,255,255,0.1)', overflow: 'hidden', zIndex: 1 }} />
+        <div style={{ position: 'relative' }}>
+            <div ref={mapRef} style={{ width: '100%', height: '450px', borderRadius: '24px', marginBottom: '20px', border: '2px solid rgba(255,255,255,0.1)', boxShadow: '0 10px 30px rgba(0,0,0,0.5)', overflow: 'hidden', zIndex: 1 }} />
+            <div style={{ 
+                position: 'absolute', 
+                bottom: '40px', 
+                right: '15px', 
+                background: 'rgba(15, 23, 42, 0.95)', 
+                backdropFilter: 'blur(10px)',
+                padding: '12px', 
+                borderRadius: '16px', 
+                zIndex: 1000, 
+                fontSize: '11px', 
+                border: '1px solid rgba(255,255,255,0.2)',
+                color: 'white',
+                boxShadow: '0 4px 15px rgba(0,0,0,0.3)'
+            }}>
+                <div style={{ fontWeight: 'bold', marginBottom: '8px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '4px', opacity: 0.8 }}>LEGEND</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                    <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#f9d423', border: '2px solid white' }}></div> 
+                    <span>Ketua Rombongan</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                    <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#00d2ff', border: '2px solid white' }}></div> 
+                    <span>Jamaah Umrah</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#ff4444', border: '2px solid white', animation: 'pulse 1s infinite' }}></div> 
+                    <span style={{ color: '#ff4444', fontWeight: 'bold' }}>Darurat SOS</span>
+                </div>
+            </div>
+        </div>
     );
 };
+
 
 const GroupPage = () => {
     const { user } = useAuth();
