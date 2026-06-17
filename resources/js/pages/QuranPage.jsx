@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Book, Search, PlayCircle, Menu, X, Info, Star } from 'lucide-react';
+import { ArrowLeft, Book, Search, PlayCircle, Star, ChevronLeft, ChevronRight, Info } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import BottomNav from '../components/BottomNav';
 
@@ -8,69 +10,35 @@ const quranApi = axios.create({
     baseURL: 'https://equran.id/api/v2',
 });
 
-const JUZ_MAPPING = [
-    { juz: 1, surah: 1, ayat: 1, name: 'Al-Fatihah' },
-    { juz: 2, surah: 2, ayat: 142, name: 'Al-Baqarah' },
-    { juz: 3, surah: 2, ayat: 253, name: 'Al-Baqarah' },
-    { juz: 4, surah: 3, ayat: 93, name: 'Ali \'Imran' },
-    { juz: 5, surah: 4, ayat: 24, name: 'An-Nisa\'' },
-    { juz: 6, surah: 4, ayat: 148, name: 'An-Nisa\'' },
-    { juz: 7, surah: 5, ayat: 82, name: 'Al-Ma\'idah' },
-    { juz: 8, surah: 6, ayat: 111, name: 'Al-An\'am' },
-    { juz: 9, surah: 7, ayat: 88, name: 'Al-A\'raf' },
-    { juz: 10, surah: 8, ayat: 41, name: 'Al-Anfal' },
-    { juz: 11, surah: 9, ayat: 93, name: 'At-Tawbah' },
-    { juz: 12, surah: 11, ayat: 6, name: 'Hud' },
-    { juz: 13, surah: 12, ayat: 53, name: 'Yusuf' },
-    { juz: 14, surah: 15, ayat: 1, name: 'Al-Hijr' },
-    { juz: 15, surah: 17, ayat: 1, name: 'Al-Isra\'' },
-    { juz: 16, surah: 18, ayat: 75, name: 'Al-Kahf' },
-    { juz: 17, surah: 21, ayat: 1, name: 'Al-Anbiya\'' },
-    { juz: 18, surah: 23, ayat: 1, name: 'Al-Mu\'minun' },
-    { juz: 19, surah: 25, ayat: 21, name: 'Al-Furqan' },
-    { juz: 20, surah: 27, ayat: 56, name: 'An-Naml' },
-    { juz: 21, surah: 29, ayat: 46, name: 'Al-\'Ankabut' },
-    { juz: 22, surah: 33, ayat: 31, name: 'Al-Ahzab' },
-    { juz: 23, surah: 36, ayat: 28, name: 'Ya-Sin' },
-    { juz: 24, surah: 39, ayat: 31, name: 'Az-Zumar' },
-    { juz: 25, surah: 41, ayat: 47, name: 'Fussilat' },
-    { juz: 26, surah: 46, ayat: 1, name: 'Al-Ahqaf' },
-    { juz: 27, surah: 51, ayat: 31, name: 'Adh-Dhariyat' },
-    { juz: 28, surah: 58, ayat: 1, name: 'Al-Mujadila' },
-    { juz: 29, surah: 67, ayat: 1, name: 'Al-Mulk' },
-    { juz: 30, surah: 78, ayat: 1, name: 'An-Naba\'' }
-];
+const JUZ_DEFINITIONS = {
+    1: [1, 1, 2, 141], 2: [2, 142, 2, 252], 3: [2, 253, 3, 92], 4: [3, 93, 4, 23], 5: [4, 24, 4, 147],
+    6: [4, 148, 5, 81], 7: [5, 82, 6, 110], 8: [6, 111, 7, 87], 9: [7, 88, 8, 40], 10: [8, 41, 9, 92],
+    11: [9, 93, 11, 5], 12: [11, 6, 12, 52], 13: [12, 53, 14, 52], 14: [15, 1, 16, 128], 15: [17, 1, 18, 74],
+    16: [18, 75, 20, 135], 17: [21, 1, 22, 78], 18: [23, 1, 25, 20], 19: [25, 21, 27, 55], 20: [27, 56, 29, 45],
+    21: [29, 46, 33, 30], 22: [33, 31, 36, 27], 23: [36, 28, 39, 31], 24: [39, 32, 41, 46], 25: [41, 47, 45, 37],
+    26: [46, 1, 51, 30], 27: [51, 31, 57, 29], 28: [58, 1, 66, 12], 29: [67, 1, 77, 50], 30: [78, 1, 114, 6]
+};
 
 const QuranPage = () => {
     const navigate = useNavigate();
+    const { user, setUser } = useAuth();
     const [surahs, setSurahs] = useState([]);
-    const [selectedSurah, setSelectedSurah] = useState(null);
-    const [ayahs, setAyahs] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [view, setView] = useState('list'); // 'list' or 'reader'
-    const [listMode, setListMode] = useState('surah'); // 'surah' or 'juz'
+    const [view, setView] = useState('list');
+    const [listMode, setListMode] = useState('surah');
+    const [readingMode, setReadingMode] = useState('surah');
+    const [selectedId, setSelectedId] = useState(null);
+    const [selectedData, setSelectedData] = useState(null); 
+    const [ayahs, setAyahs] = useState([]);
     const [error, setError] = useState(false);
     const [search, setSearch] = useState('');
-    const [resourceType, setResourceType] = useState('translation'); // 'translation' or 'tafsir'
     const [showTranslation, setShowTranslation] = useState(true);
     const [playingAudio, setPlayingAudio] = useState(null);
-    const [lastRead, setLastRead] = useState(null);
-    const [targetAyah, setTargetAyah] = useState(null);
+    const [swipeDirection, setSwipeDirection] = useState(0);
 
     useEffect(() => {
-        const saved = localStorage.getItem('last_read_quran');
-        if (saved) setLastRead(JSON.parse(saved));
+        fetchSurahs();
     }, []);
-
-    const saveBookmark = (ayah) => {
-        const bookmark = {
-            surahId: selectedSurah.nomor,
-            surahName: selectedSurah.namaLatin,
-            verseKey: ayah.nomorAyat
-        };
-        localStorage.setItem('last_read_quran', JSON.stringify(bookmark));
-        setLastRead(bookmark);
-    };
 
     const fetchSurahs = async () => {
         setLoading(true);
@@ -86,64 +54,115 @@ const QuranPage = () => {
         }
     };
 
-    useEffect(() => {
-        fetchSurahs();
-    }, []);
-
-    useEffect(() => {
-        if (selectedSurah) {
-            fetchAyahs(selectedSurah.nomor);
-        }
-    }, [resourceType, selectedSurah?.nomor]);
-
-    const fetchAyahs = async (surahNomor) => {
+    const fetchContent = async (id, mode) => {
         setLoading(true);
         setError(false);
+        setAyahs([]);
         try {
-            const endpoint = resourceType === 'translation' ? `/surat/${surahNomor}` : `/tafsir/${surahNomor}`;
-            const res = await quranApi.get(endpoint);
-
-            if (!res.data.data) {
-                throw new Error('Data tidak ditemukan');
-            }
-
-            const data = res.data.data;
-            if (resourceType === 'translation') {
+            if (mode === 'surah') {
+                const res = await quranApi.get(`/surat/${id}`);
+                const data = res.data.data;
+                setSelectedData(data);
                 const combined = data.ayat.map(a => ({
                     id: a.nomorAyat,
                     verse_key: `${data.nomor}:${a.nomorAyat}`,
                     text_arabic: a.teksArab,
                     translation: a.teksIndonesia,
-                    audio: a.audio['01'], // Abdullah Al-Juhany
-                    latin: a.teksLatin
+                    audio: a.audio['01'],
+                    latin: a.teksLatin,
+                    surahName: data.namaLatin
                 }));
                 setAyahs(combined);
             } else {
-                const combined = data.tafsir.map(t => ({
-                    id: t.ayat,
-                    verse_key: `${data.nomor}:${t.ayat}`,
-                    text_arabic: '', // Tafsir endpoint typically doesn't repeat full arabic if it's separate
-                    translation: t.teks,
-                    latin: ''
-                }));
-                setAyahs(combined);
-            }
+                const range = JUZ_DEFINITIONS[id];
+                const startSurah = range[0];
+                const endSurah = range[2];
+                const startAyah = range[1];
+                const endAyah = range[3];
 
-            // Handle scrolling after ayahs are loaded
-            if (targetAyah) {
-                setTimeout(() => {
-                    const el = document.getElementById(`ayah-${targetAyah}`);
-                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    setTargetAyah(null);
-                }, 500);
+                let allAyahs = [];
+                for (let s = startSurah; s <= endSurah; s++) {
+                    const res = await quranApi.get(`/surat/${s}`);
+                    const sData = res.data.data;
+                    
+                    let sAyahs = sData.ayat.map(a => ({
+                        id: a.nomorAyat,
+                        verse_key: `${sData.nomor}:${a.nomorAyat}`,
+                        text_arabic: a.teksArab,
+                        translation: a.teksIndonesia,
+                        audio: a.audio['01'],
+                        latin: a.teksLatin,
+                        surahName: sData.namaLatin,
+                        surahNomor: sData.nomor
+                    }));
+
+                    if (s === startSurah) sAyahs = sAyahs.filter(a => a.id >= startAyah);
+                    if (s === endSurah) sAyahs = sAyahs.filter(a => a.id <= endAyah);
+                    
+                    allAyahs = [...allAyahs, ...sAyahs];
+                }
+                
+                setSelectedData({ juz: id, name: `Juz ${id}` });
+                setAyahs(allAyahs);
             }
         } catch (err) {
-            console.error('Failed to fetch ayahs', err);
+            console.error('Failed to fetch content', err);
             setError(true);
         } finally {
             setLoading(false);
         }
     };
+
+    const handleSelectSurah = (surah) => {
+        setSelectedId(surah.nomor);
+        setReadingMode('surah');
+        setView('reader');
+        fetchContent(surah.nomor, 'surah');
+        window.scrollTo(0, 0);
+    };
+
+    const handleSelectJuz = (juzNomor) => {
+        setSelectedId(juzNomor);
+        setReadingMode('juz');
+        setView('reader');
+        fetchContent(juzNomor, 'juz');
+        window.scrollTo(0, 0);
+    };
+
+    const handleSwipe = (direction) => {
+        if (readingMode !== 'juz') return;
+        const newJuz = direction === 'left' ? selectedId + 1 : selectedId - 1;
+        if (newJuz >= 1 && newJuz <= 30) {
+            setSwipeDirection(direction === 'left' ? 1 : -1);
+            setSelectedId(newJuz);
+            fetchContent(newJuz, 'juz');
+            window.scrollTo(0, 0);
+        }
+    };
+
+    const saveBookmark = async (ayah) => {
+        const bookmark = {
+            id: selectedId,
+            mode: readingMode,
+            name: readingMode === 'surah' ? selectedData.namaLatin : `Juz ${selectedId}`,
+            verseKey: ayah.verse_key
+        };
+        
+        try {
+            const res = await axios.post('/api/quran-history', {
+                last_quran_history: bookmark
+            });
+            if (res.data.user) {
+                setUser(res.data.user);
+            }
+        } catch (err) {
+            console.error('Failed to save history to server', err);
+            // Fallback to local storage
+            localStorage.setItem('last_read_quran', JSON.stringify(bookmark));
+        }
+    };
+
+    const lastRead = user?.last_quran_history || JSON.parse(localStorage.getItem('last_read_quran'));
 
     const filteredSurahs = surahs.filter(s =>
         s.namaLatin.toLowerCase().includes(search.toLowerCase()) ||
@@ -151,203 +170,173 @@ const QuranPage = () => {
     );
 
     return (
-        <div className="quran-page" style={{ color: 'white', minHeight: '100vh', paddingBottom: '100px' }}>
+        <div className="quran-page" style={{ background: '#0f172a', color: 'white', minHeight: '100vh', paddingBottom: '90px' }}>
             {/* Header */}
-            <header style={{ padding: '20px', position: 'sticky', top: 0, background: 'var(--bg-dark)', zIndex: 10 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                    {view === 'reader' && (
-                        <button onClick={() => setView('list')} style={{ background: 'none', border: 'none', color: 'white' }}>
-                            <ArrowLeft />
-                        </button>
-                    )}
-                    <h1 style={{ fontSize: '20px' }}>{view === 'reader' ? selectedSurah?.namaLatin : 'Al-Quran Digital'}</h1>
-                </div>
-                {view === 'list' && (
-                    <>
-                        <div className="list-toggle" style={{ display: 'flex', gap: '5px', background: 'rgba(255,255,255,0.05)', padding: '5px', borderRadius: '10px', marginTop: '10px' }}>
-                            <button
-                                onClick={() => setListMode('surah')}
-                                style={{ flex: 1, padding: '8px', border: 'none', borderRadius: '8px', background: listMode === 'surah' ? 'var(--accent-blue)' : 'none', color: listMode === 'surah' ? '#1a1a2e' : 'white', fontWeight: 'bold', fontSize: '12px', transition: '0.3s' }}
-                            >SURAH</button>
-                            <button
-                                onClick={() => setListMode('juz')}
-                                style={{ flex: 1, padding: '8px', border: 'none', borderRadius: '8px', background: listMode === 'juz' ? 'var(--accent-blue)' : 'none', color: listMode === 'juz' ? '#1a1a2e' : 'white', fontWeight: 'bold', fontSize: '12px', transition: '0.3s' }}
-                            >JUZ</button>
+            <header style={{ 
+                padding: '15px 20px', 
+                position: 'sticky', 
+                top: 0, 
+                background: 'rgba(15, 23, 42, 0.95)', 
+                backdropFilter: 'blur(10px)',
+                borderBottom: '1px solid rgba(255,255,255,0.05)',
+                zIndex: 100 
+            }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                        {view === 'reader' && (
+                            <button onClick={() => setView('list')} style={{ background: 'none', border: 'none', color: 'white', padding: '5px' }}>
+                                <ArrowLeft size={24} />
+                            </button>
+                        )}
+                        <div>
+                            <h1 style={{ fontSize: '18px', margin: 0 }}>
+                                {view === 'reader' ? (readingMode === 'surah' ? selectedData?.namaLatin : `Juz ${selectedId}`) : 'Al-Quran Digital'}
+                            </h1>
                         </div>
-                        <div className="glass-card" style={{ marginTop: '15px', display: 'flex', gap: '10px', padding: '10px 15px', borderRadius: '12px' }}>
-                            <Search size={18} opacity={0.5} />
-                            <input
-                                type="text"
-                                placeholder={listMode === 'surah' ? "Cari Surah..." : "Cari Juz..."}
+                    </div>
+                </div>
+
+                {view === 'list' && (
+                    <div style={{ marginTop: '15px' }}>
+                        <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', padding: '4px', borderRadius: '12px', marginBottom: '15px' }}>
+                            <button onClick={() => setListMode('surah')} style={{ flex: 1, padding: '10px', borderRadius: '10px', border: 'none', background: listMode === 'surah' ? 'var(--accent-blue)' : 'none', color: listMode === 'surah' ? '#0f172a' : 'white', fontWeight: 'bold', fontSize: '12px' }}>SURAH</button>
+                            <button onClick={() => setListMode('juz')} style={{ flex: 1, padding: '10px', borderRadius: '10px', border: 'none', background: listMode === 'juz' ? 'var(--accent-blue)' : 'none', color: listMode === 'juz' ? '#0f172a' : 'white', fontWeight: 'bold', fontSize: '12px' }}>JUZ</button>
+                        </div>
+                        <div style={{ background: 'rgba(15, 23, 42, 0.5)', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 18px', borderRadius: '15px' }}>
+                            <Search size={18} opacity={0.4} />
+                            <input 
+                                placeholder={listMode === 'surah' ? "Cari nama surah..." : "Cari juz..."}
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
-                                style={{ background: 'none', border: 'none', color: 'white', outline: 'none', width: '100%' }}
+                                style={{ background: 'none', border: 'none', color: 'white', outline: 'none', width: '100%', fontSize: '14px' }}
                             />
                         </div>
-                    </>
+                    </div>
                 )}
             </header>
 
-            {loading ? (
-                <div style={{ textAlign: 'center', padding: '50px' }}>
-                    <div className="loader"></div>
-                    <p style={{ marginTop: '15px', opacity: 0.6 }}>Memuat Al-Quran...</p>
-                </div>
-            ) : error ? (
-                <div className="glass-card" style={{ margin: '20px', textAlign: 'center', padding: '40px 20px' }}>
-                    <p style={{ color: '#ff4444', marginBottom: '20px' }}>Gagal memuat data Al-Quran.</p>
-                    <button
-                        onClick={() => view === 'list' ? fetchSurahs() : (selectedSurah && fetchAyahs(selectedSurah.id))}
-                        style={{ background: 'var(--accent-blue)', border: 'none', color: '#1a1a2e', padding: '10px 25px', borderRadius: '10px', fontWeight: 'bold' }}
-                    >Coba Lagi</button>
-                </div>
-            ) : view === 'list' ? (
-                <div className="surah-list" style={{ padding: '0 20px' }}>
-                    {lastRead && (
-                        <div
-                            className="glass-card bookmark-card"
-                            style={{ padding: '15px', marginBottom: '20px', border: '1px solid var(--accent-gold)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-                            onClick={() => {
-                                const s = surahs.find(sur => sur.nomor === lastRead.surahId);
-                                if (s) {
-                                    setSelectedSurah(s);
-                                    setView('reader');
-                                }
-                            }}
-                        >
-                            <div>
-                                <div style={{ fontSize: '10px', color: 'var(--accent-gold)', marginBottom: '4px' }}>LANJUTKAN MEMBACA</div>
-                                <div style={{ fontWeight: 'bold' }}>{lastRead.surahName}: Ayat {lastRead.verseKey.split(':')[1]}</div>
-                            </div>
-                            <Book size={20} color="var(--accent-gold)" />
-                        </div>
-                    )}
-                    {listMode === 'surah' ? (
-                        filteredSurahs.map(s => (
-                            <div
-                                key={s.nomor}
-                                onClick={() => { setSelectedSurah(s); setView('reader'); }}
-                                className="surah-item glass-card"
-                                style={{ padding: '15px', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '15px', cursor: 'pointer' }}
-                            >
-                                <div className="surah-num" style={{ width: '35px', height: '35px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '14px', fontWeight: 'bold', color: 'var(--accent-blue)' }}>
-                                    {s.nomor}
-                                </div>
-                                <div style={{ flex: 1 }}>
-                                    <div style={{ fontWeight: 'bold' }}>{s.namaLatin}</div>
-                                    <div style={{ fontSize: '11px', opacity: 0.6 }}>{s.arti} • {s.jumlahAyat} Ayat</div>
-                                </div>
-                                <div className="arabic-name" style={{ fontSize: '20px', fontFamily: "'Scheherazade New', serif" }}>{s.nama}</div>
-                            </div>
-                        ))
-                    ) : (
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-                            {JUZ_MAPPING.filter(j => j.juz.toString().includes(search) || j.name.toLowerCase().includes(search.toLowerCase())).map(j => (
-                                <div
-                                    key={j.juz}
-                                    className="glass-card juz-item"
-                                    onClick={() => {
-                                        const s = surahs.find(sur => sur.nomor === j.surah);
-                                        if (s) {
-                                            setSelectedSurah(s);
-                                            setTargetAyah(j.ayat);
-                                            setView('reader');
-                                        }
-                                    }}
-                                    style={{ padding: '20px', textAlign: 'center', borderRadius: '15px', cursor: 'pointer' }}
-                                >
-                                    <div style={{ fontSize: '12px', color: 'var(--accent-blue)', fontWeight: 'bold', marginBottom: '8px' }}>JUZ {j.juz}</div>
-                                    <div style={{ fontSize: '14px', fontWeight: 'bold' }}>{j.name}</div>
-                                    <div style={{ fontSize: '10px', opacity: 0.5, marginTop: '5px' }}>Mulai Ayat {j.ayat}</div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-            ) : (
-                <div className="quran-reader" style={{ padding: '0 20px' }}>
-                    <div className="reader-controls" style={{ display: 'flex', gap: '10px', marginBottom: '15px', overflowX: 'auto', paddingBottom: '10px' }}>
-                        <button
-                            onClick={() => setResourceType('translation')}
-                            className={resourceType === 'translation' ? 'tab active' : 'tab'}
-                        >
-                            Terjemahan
-                        </button>
-                        <button
-                            onClick={() => setResourceType('tafsir')}
-                            className={resourceType === 'tafsir' ? 'tab active' : 'tab'}
-                        >
-                            Tafsir
-                        </button>
-                        <div style={{ borderLeft: '1px solid var(--glass-border)', margin: '0 3px' }}></div>
-                        <button
-                            onClick={() => setShowTranslation(!showTranslation)}
-                            className={showTranslation ? 'tab active' : 'tab'}
-                        >
-                            {showTranslation ? 'Sembunyi' : 'Tampil'}
-                        </button>
+            <main style={{ padding: '20px' }}>
+                {loading && (view === 'list' || (view === 'reader' && ayahs.length === 0)) ? (
+                    <div style={{ textAlign: 'center', padding: '100px 0' }}>
+                        <div className="loader"></div>
+                        <p style={{ marginTop: '20px', opacity: 0.5, fontSize: '14px' }}>Memproses bacaan...</p>
                     </div>
-
-                    {ayahs.map(ayah => (
-                        <div key={ayah.id} id={`ayah-${ayah.id}`} className="ayah-item" style={{ marginBottom: '30px', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '20px' }}>
-                            <div className="ayah-num-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                                <span style={{ fontSize: '12px', background: 'var(--accent-blue)', color: '#1a1a2e', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold' }}>{ayah.verse_key}</span>
-                                <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-                                    {ayah.audio && (
-                                        <button
-                                            onClick={() => {
-                                                if (playingAudio === ayah.id) {
-                                                    setPlayingAudio(null);
-                                                } else {
-                                                    const audio = new Audio(ayah.audio);
-                                                    audio.play();
-                                                    setPlayingAudio(ayah.id);
-                                                    audio.onended = () => setPlayingAudio(null);
-                                                }
-                                            }}
-                                            style={{ background: 'none', border: 'none', color: playingAudio === ayah.id ? 'var(--accent-gold)' : 'white' }}
-                                        >
-                                            <PlayCircle size={18} fill={playingAudio === ayah.id ? 'var(--accent-gold)' : 'none'} />
-                                        </button>
-                                    )}
-                                    <button
-                                        onClick={() => saveBookmark(ayah)}
-                                        style={{ background: 'none', border: 'none', color: lastRead?.verseKey === ayah.id ? 'var(--accent-gold)' : 'white', cursor: 'pointer' }}
-                                    >
-                                        <Star size={16} fill={lastRead?.verseKey === ayah.id ? 'var(--accent-gold)' : 'none'} />
-                                    </button>
-                                </div>
+                ) : error ? (
+                    <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+                        <p style={{ color: '#ef4444' }}>Gagal memuat data.</p>
+                        <button onClick={() => view === 'list' ? fetchSurahs() : fetchContent(selectedId, readingMode)} style={{ marginTop: '20px', background: 'var(--accent-blue)', color: '#0f172a', border: 'none', padding: '10px 30px', borderRadius: '25px', fontWeight: 'bold' }}>Coba Lagi</button>
+                    </div>
+                ) : view === 'list' ? (
+                    <div>
+                        {lastRead && (
+                            <div 
+                                className="glass-card" 
+                                onClick={() => {
+                                    setReadingMode(lastRead.mode);
+                                    setSelectedId(lastRead.id);
+                                    setView('reader');
+                                    fetchContent(lastRead.id, lastRead.mode);
+                                }}
+                                style={{ padding: '20px', marginBottom: '25px', border: '1px solid var(--accent-gold)', position: 'relative', background: 'linear-gradient(135deg, rgba(249, 212, 35, 0.1), rgba(15, 23, 42, 0.5))' }}
+                            >
+                                <span style={{ fontSize: '11px', color: 'var(--accent-gold)', fontWeight: 'bold' }}>LANJUTKAN BACAAN AKUN ANDA</span>
+                                <div style={{ fontSize: '18px', fontWeight: 'bold', margin: '5px 0' }}>{lastRead.name}</div>
+                                <div style={{ fontSize: '13px', opacity: 0.7 }}>Ayat {lastRead.verseKey.split(':')[1]}</div>
                             </div>
+                        )}
 
-                            {ayah.text_arabic && (
-                                <p
-                                    className="arabic-text"
-                                    style={{ fontSize: '32px', textAlign: 'right', lineHeight: '2.5', fontFamily: "'Scheherazade New', serif", marginBottom: '10px' }}
-                                >{ayah.text_arabic}</p>
-                            )}
+                        {listMode === 'surah' ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                {filteredSurahs.map(s => (
+                                    <div key={s.nomor} onClick={() => handleSelectSurah(s)} className="glass-card" style={{ padding: '15px', display: 'flex', alignItems: 'center', gap: '15px', cursor: 'pointer' }}>
+                                        <div style={{ width: '36px', height: '36px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '13px' }}>{s.nomor}</div>
+                                        <div style={{ flex: 1 }}>
+                                            <div style={{ fontWeight: '700' }}>{s.namaLatin}</div>
+                                            <div style={{ fontSize: '11px', opacity: 0.5 }}>{s.arti} • {s.jumlahAyat} Ayat</div>
+                                        </div>
+                                        <div style={{ fontSize: '22px', fontFamily: "'Scheherazade New', serif", color: 'var(--accent-gold)' }}>{s.nama}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                {Object.keys(JUZ_DEFINITIONS).map(jNum => (
+                                    <div key={jNum} onClick={() => handleSelectJuz(parseInt(jNum))} className="glass-card" style={{ padding: '20px', textAlign: 'center', cursor: 'pointer' }}>
+                                        <div style={{ fontSize: '11px', color: 'var(--accent-blue)', fontWeight: 'bold', marginBottom: '4px' }}>JUZ {jNum}</div>
+                                        <div style={{ fontWeight: 'bold', fontSize: '14px' }}>Mushaf Juz {jNum}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                ) : (
+                    <div className="reader-view">
+                        {readingMode === 'juz' && (
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px', color: 'var(--accent-gold)', fontSize: '11px', fontWeight: 'bold' }}>
+                                <button onClick={() => handleSwipe('right')} disabled={selectedId <= 1} style={{ background: 'none', border: 'none', color: 'inherit', display: 'flex', alignItems: 'center', opacity: selectedId <= 1 ? 0.2 : 1 }}><ChevronLeft size={16} /> JUZ {selectedId - 1}</button>
+                                <span style={{opacity:0.4}}>GESER UNTUK GANTI JUZ</span>
+                                <button onClick={() => handleSwipe('left')} disabled={selectedId >= 30} style={{ background: 'none', border: 'none', color: 'inherit', display: 'flex', alignItems: 'center', opacity: selectedId >= 30 ? 0.2 : 1 }}>JUZ {selectedId + 1} <ChevronRight size={16} /></button>
+                            </div>
+                        )}
 
-                            {showTranslation && ayah.latin && (
-                                <p className="latin-text" style={{ fontSize: '13px', fontStyle: 'italic', color: 'var(--accent-blue)', opacity: 0.7, marginBottom: '10px' }}>{ayah.latin}</p>
-                            )}
-
-                            {showTranslation && (
-                                <p className="trans-text" style={{ fontSize: resourceType === 'tafsir' ? '12px' : '14px', lineHeight: '1.6', opacity: resourceType === 'tafsir' ? 0.6 : 0.8 }} dangerouslySetInnerHTML={{ __html: ayah.translation }} />
-                            )}
-                        </div>
-                    ))}
-                </div>
-            )}
+                        <AnimatePresence mode="wait">
+                            <motion.div
+                                key={`${readingMode}-${selectedId}`}
+                                initial={{ x: swipeDirection > 0 ? 50 : swipeDirection < 0 ? -50 : 0, opacity: 0 }}
+                                animate={{ x: 0, opacity: 1 }}
+                                exit={{ x: swipeDirection > 0 ? -50 : swipeDirection < 0 ? 50 : 0, opacity: 0 }}
+                                drag={readingMode === 'juz' ? "x" : false}
+                                dragConstraints={{ left: 0, right: 0 }}
+                                onDragEnd={(e, { offset }) => {
+                                    if (offset.x < -80) handleSwipe('left');
+                                    if (offset.x > 80) handleSwipe('right');
+                                }}
+                            >
+                                {ayahs.map((ayah, index) => {
+                                    const showSurahHeader = index === 0 || (ayahs[index - 1].surahNomor !== ayah.surahNomor);
+                                    return (
+                                        <div key={`${ayah.verse_key}-${index}`}>
+                                            {showSurahHeader && (
+                                                <div style={{ textAlign: 'center', padding: '30px 0 10px 0', marginBottom: '25px', background: 'rgba(255,255,255,0.02)', borderRadius: '15px' }}>
+                                                    <h3 style={{ fontSize: '22px', color: 'var(--accent-gold)', fontFamily: "'Scheherazade New', serif" }}>{ayah.surahName}</h3>
+                                                </div>
+                                            )}
+                                            <div id={`ayah-${ayah.id}`} style={{ marginBottom: '35px', paddingBottom:'25px', borderBottom:'1px solid rgba(255,255,255,0.03)' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                                                    <span style={{ fontSize: '10px', background: 'rgba(255,255,255,0.1)', padding: '2px 8px', borderRadius: '6px', opacity: 0.6 }}>{ayah.verse_key}</span>
+                                                    <div style={{ display: 'flex', gap: '12px' }}>
+                                                        <button onClick={() => {
+                                                            const audio = new Audio(ayah.audio);
+                                                            audio.play();
+                                                            setPlayingAudio(ayah.verse_key);
+                                                            audio.onended = () => setPlayingAudio(null);
+                                                        }} style={{ background: 'none', border: 'none', color: playingAudio === ayah.verse_key ? 'var(--accent-gold)' : 'white' }}><PlayCircle size={18} fill={playingAudio === ayah.verse_key ? 'currentColor' : 'none'} /></button>
+                                                        <button onClick={() => saveBookmark(ayah)} style={{ background: 'none', border: 'none', color: lastRead?.verseKey === ayah.verse_key ? 'var(--accent-gold)' : 'white' }}><Star size={18} fill={lastRead?.verseKey === ayah.verse_key ? 'currentColor' : 'none'} /></button>
+                                                    </div>
+                                                </div>
+                                                <p style={{ fontSize: '30px', textAlign: 'right', direction: 'rtl', lineHeight: '2.4', fontFamily: "'Scheherazade New', serif", marginBottom: '12px' }}>{ayah.text_arabic}</p>
+                                                {showTranslation && (
+                                                    <div style={{ paddingLeft: '5px' }}>
+                                                        <p style={{ fontSize: '12px', color: 'var(--accent-blue)', fontStyle: 'italic', marginBottom: '6px', opacity: 0.8 }}>{ayah.latin}</p>
+                                                        <p style={{ fontSize: '14px', lineHeight: '1.6', opacity: 0.7 }}>{ayah.translation}</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </motion.div>
+                        </AnimatePresence>
+                    </div>
+                )}
+            </main>
 
             <style>{`
                 @import url('https://fonts.googleapis.com/css2?family=Scheherazade+New:wght@400;700&display=swap');
-                .loader { width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-top-color: var(--accent-blue); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto; }
+                .loader { width: 30px; height: 30px; border: 3px solid rgba(0, 210, 255, 0.1); border-top-color: var(--accent-blue); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto; }
                 @keyframes spin { to { transform: rotate(360deg); } }
-                .surah-item:active { transform: scale(0.98); background: rgba(255,255,255,0.08); }
-                .tab { background: rgba(255,255,255,0.05); border: none; color: white; padding: 8px 16px; border-radius: 8px; font-size: 13px; cursor: pointer; transition: 0.3s; white-space: nowrap; }
-                .tab.active { background: var(--accent-gold); color: #1a1a2e; font-weight: bold; }
-                
-                /* Translation Footnotes */
-                .trans-text sup { color: var(--accent-gold); font-size: 8px; margin-left: 2px; }
+                .glass-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 18px; transition: 0.2s; }
+                .glass-card:active { transform: scale(0.98); background: rgba(255,255,255,0.06); }
             `}</style>
             <BottomNav />
         </div>

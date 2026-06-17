@@ -56,9 +56,9 @@ class WorshipLogController extends Controller
         ]);
     }
 
-    public function destroy(WorshipLog $worshipLog)
+    public function destroy(Request $request, WorshipLog $worshipLog)
     {
-        if ($worshipLog->user_id !== auth()->id()) {
+        if ($worshipLog->user_id !== $request->user()->id) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 

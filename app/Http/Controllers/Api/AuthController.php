@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 use Laravel\Socialite\Facades\Socialite;
 use Illuminate\Support\Str;
+use App\Models\Group;
+use App\Models\GroupMember;
 
 class AuthController extends Controller
 {
@@ -58,9 +60,7 @@ class AuthController extends Controller
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
             'phone' => 'required|string|max:20',
-            'departure_date' => 'nullable|date',
-            'return_date' => 'nullable|date',
-            'group_name' => 'nullable|string|max:150',
+            'invite_code' => 'nullable|string|exists:groups,invite_code',
         ]);
 
         $user = User::create([
@@ -68,18 +68,26 @@ class AuthController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'phone' => $request->phone,
-            'departure_date' => $request->departure_date,
-            'return_date' => $request->return_date,
-            'group_name' => $request->group_name,
-            'role' => 'jamaah', // Default role
+            'role' => 'jamaah',
         ]);
+
+        if ($request->filled('invite_code')) {
+            $group = Group::where('invite_code', strtoupper($request->invite_code))->first();
+            if ($group) {
+                GroupMember::create([
+                    'group_id' => $group->id,
+                    'user_id' => $user->id,
+                    'member_role' => 'member',
+                ]);
+            }
+        }
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
             'access_token' => $token,
             'token_type' => 'Bearer',
-            'user' => $user,
+            'user' => $user->load('groups'),
         ]);
     }
 
@@ -96,7 +104,7 @@ class AuthController extends Controller
             ], 401);
         }
 
-        $user = User::where('email', $request['email'])->firstOrFail();
+        $user = User::where('email', $request->email)->firstOrFail();
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
@@ -109,7 +117,26 @@ class AuthController extends Controller
 
     public function me(Request $request)
     {
-        return response()->json($request->user());
+        return response()->json($request->user()->load(['groups' => function($q) {
+            $q->with(['owner:id,full_name,phone']);
+        }]));
+    }
+
+    public function updateQuranHistory(Request $request)
+    {
+        $request->validate([
+            'last_quran_history' => 'required',
+        ]);
+
+        $user = $request->user();
+        $user->update([
+            'last_quran_history' => $request->last_quran_history
+        ]);
+
+        return response()->json([
+            'message' => 'History updated',
+            'user' => $user
+        ]);
     }
 
     public function logout(Request $request)

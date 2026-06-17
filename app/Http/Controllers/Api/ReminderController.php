@@ -30,9 +30,9 @@ class ReminderController extends Controller
         return response()->json($reminder);
     }
 
-    public function toggle(Reminder $reminder)
+    public function toggle(Request $request, Reminder $reminder)
     {
-        if ($reminder->user_id !== auth()->id()) {
+        if ($reminder->user_id !== $request->user()->id) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 

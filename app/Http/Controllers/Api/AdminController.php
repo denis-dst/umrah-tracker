@@ -8,16 +8,22 @@ use App\Models\Itinerary;
 use App\Models\User;
 use Illuminate\Http\Request;
 
-class AdminController extends Controller
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Routing\Controllers\Middleware;
+
+class AdminController extends Controller implements HasMiddleware
 {
-    public function __construct()
+    public static function middleware(): array
     {
-        $this->middleware(function ($request, $next) {
-            if (auth()->user()->role !== 'admin') {
-                return response()->json(['message' => 'Admin access required'], 403);
-            }
-            return $next($request);
-        });
+        return [
+            new Middleware(function ($request, $next) {
+                if (Auth::user()->role !== 'admin') {
+                    return response()->json(['message' => 'Admin access required'], 403);
+                }
+                return $next($request);
+            })
+        ];
     }
 
     public function listJamaah()

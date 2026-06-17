@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\Api\GroupController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -14,7 +15,9 @@ Route::get('/auth/google/callback', [AuthController::class, 'handleGoogleCallbac
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);
+    Route::post('/quran-history', [AuthController::class, 'updateQuranHistory']);
     Route::put('/profile', [ProfileController::class, 'update']);
+    Route::post('/profile/location', [ProfileController::class, 'updateLocation']);
 
     // Checklist Routes
     Route::get('/checklists', [\App\Http\Controllers\Api\ChecklistController::class, 'index']);
@@ -49,8 +52,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/groups', [\App\Http\Controllers\Api\GroupController::class, 'index']);
     Route::post('/groups', [\App\Http\Controllers\Api\GroupController::class, 'store']);
     Route::post('/groups/join', [\App\Http\Controllers\Api\GroupController::class, 'join']);
-    Route::get('/groups/{group}', [\App\Http\Controllers\Api\GroupController::class, 'show']);
-    Route::get('/groups/{group}/members', [\App\Http\Controllers\Api\GroupController::class, 'members']);
+    Route::get('/groups/{group}', [GroupController::class, 'show']);
+    Route::get('/groups/{group}/members', [GroupController::class, 'members']);
+    Route::put('/groups/{group}/hotels', [GroupController::class, 'updateHotels']);
+    Route::post('/emergency/sos', [GroupController::class, 'sendSOS']);
+    Route::get('/groups/{group}/alerts', [GroupController::class, 'getAlerts']);
+    Route::patch('/emergency/alerts/{alert}/resolve', [GroupController::class, 'resolveAlert']);
 
     // Admin / Agent Routes (Modul 9)
     Route::prefix('admin')->group(function () {

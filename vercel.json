@@ -1,0 +1,57 @@
+{
+    "version": 2,
+    "builds": [
+        {
+            "src": "backend/index.php",
+            "use": "vercel-php@0.7.3"
+        },
+        {
+            "src": "public/build/assets/*.js",
+            "use": "@vercel/static"
+        },
+        {
+            "src": "public/build/assets/*.css",
+            "use": "@vercel/static"
+        },
+        {
+            "src": "public/build/manifest.json",
+            "use": "@vercel/static"
+        },
+        {
+            "src": "public/favicon.ico",
+            "use": "@vercel/static"
+        }
+    ],
+    "routes": [
+        {
+            "src": "/build/assets/(.*)",
+            "dest": "/public/build/assets/$1"
+        },
+        {
+            "src": "/build/manifest.json",
+            "dest": "/public/build/manifest.json"
+        },
+        {
+            "src": "/favicon.ico",
+            "dest": "/public/favicon.ico"
+        },
+        {
+            "src": "/storage/(.*)",
+            "dest": "/public/storage/$1"
+        },
+        {
+            "src": "/(.*)",
+            "dest": "/backend/index.php"
+        }
+    ],
+    "env": {
+        "APP_ENV": "production",
+        "APP_DEBUG": "true",
+        "LOG_CHANNEL": "stderr",
+        "CACHE_STORE": "array",
+        "SESSION_DRIVER": "cookie",
+        "QUEUE_CONNECTION": "sync",
+        "VIEW_COMPILED_PATH": "/tmp",
+        "VERCEL": "true"
+    }
+}

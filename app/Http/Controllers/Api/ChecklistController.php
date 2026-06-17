@@ -25,9 +25,9 @@ class ChecklistController extends Controller
         return response()->json($checklist, 201);
     }
 
-    public function toggle(Checklist $checklist)
+    public function toggle(Request $request, Checklist $checklist)
     {
-        if ($checklist->user_id !== auth()->id()) {
+        if ($checklist->user_id !== $request->user()->id) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -36,9 +36,9 @@ class ChecklistController extends Controller
         return response()->json($checklist);
     }
 
-    public function destroy(Checklist $checklist)
+    public function destroy(Request $request, Checklist $checklist)
     {
-        if ($checklist->user_id !== auth()->id()) {
+        if ($checklist->user_id !== $request->user()->id) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
