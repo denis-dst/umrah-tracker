@@ -21,7 +21,7 @@ A comprehensive mobile-responsive web application designed to help pilgrims trac
 - **PHP 8.2+**
 - **Node.js & NPM**
 - **Composer**
-- **Database:** PostgreSQL (default) or MySQL/SQLite.
+- **Database:** MySQL (default).
 
 ### Steps to Setup
 
@@ -48,11 +48,11 @@ A comprehensive mobile-responsive web application designed to help pilgrims trac
      ```
    - Update database credentials in `.env`:
      ```env
-     DB_CONNECTION=pgsql
+     DB_CONNECTION=mysql
      DB_HOST=127.0.0.1
-     DB_PORT=5432
-     DB_DATABASE=umrah-tracker
-     DB_USERNAME=your_username
+     DB_PORT=3306
+     DB_DATABASE=umrah_tracker
+     DB_USERNAME=root
      DB_PASSWORD=your_password
      ```
    - Configure **Google Auth** (Gmail login):

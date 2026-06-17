@@ -20,6 +20,9 @@ return new class extends Migration
             $table->timestamp('log_datetime');
             $table->timestamps();
             $table->softDeletes();
+
+            $table->index(['user_id', 'activity_type']);
+            $table->index(['user_id', 'log_datetime']);
         });
     }
 

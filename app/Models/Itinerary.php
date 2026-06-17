@@ -19,6 +19,10 @@ class Itinerary extends Model
         'location',
     ];
 
+    protected $casts = [
+        'date' => 'date',
+    ];
+
     public function group()
     {
         return $this->belongsTo(Group::class);

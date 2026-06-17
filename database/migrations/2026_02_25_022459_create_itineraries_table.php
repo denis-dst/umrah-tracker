@@ -22,6 +22,8 @@ return new class extends Migration
             $table->string('location', 150)->nullable();
             $table->timestamps();
             $table->softDeletes();
+
+            $table->index(['group_id', 'date']);
         });
     }
 

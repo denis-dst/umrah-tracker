@@ -18,6 +18,8 @@ return new class extends Migration
             $table->string('member_role', 50)->default('member'); // co-leader, member
             $table->timestamps();
             $table->softDeletes();
+
+            $table->index(['group_id', 'user_id']);
         });
     }
 

@@ -21,6 +21,8 @@ return new class extends Migration
             $table->boolean('is_completed')->default(false);
             $table->timestamps();
             $table->softDeletes();
+
+            $table->index(['user_id', 'date']);
         });
     }
 
